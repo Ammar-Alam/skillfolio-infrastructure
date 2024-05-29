@@ -175,7 +175,82 @@ resource "aws_s3_bucket_policy" "redirect_site" {
 resource "aws_s3_bucket_website_configuration" "redirect_site" {
   bucket = aws_s3_bucket.redirect_site.id
   redirect_all_requests_to {
-    host_name = aws_s3_bucket_website_configuration.www_site.website_endpoint
-    protocol = "http"
+    host_name = "www.${var.my_domain}"
+    protocol = "https"
   }
+}
+
+resource "aws_cloudfront_distribution" "redirect_site" {
+  origin {
+    domain_name = aws_s3_bucket.redirect_site.bucket_domain_name
+    origin_id   = aws_s3_bucket.redirect_site.id
+  }
+
+  enabled             = true
+  is_ipv6_enabled     = true
+  comment             = "Cloudfront Distribution for redirect_site S3 bucket"
+  default_root_object = "index.html"
+  aliases = [ var.my_domain ]
+
+  default_cache_behavior {
+    allowed_methods        = ["GET", "HEAD"]
+    cached_methods         = ["GET", "HEAD"]
+    target_origin_id       = aws_s3_bucket.redirect_site.id
+    viewer_protocol_policy = "redirect-to-https"
+
+    forwarded_values {
+      query_string = false
+      cookies {
+        forward = "none"
+      }
+    }
+}
+
+  restrictions {
+    geo_restriction {
+      restriction_type = "none"
+    }
+  }
+
+  viewer_certificate {
+    acm_certificate_arn = var.my_certificate
+    ssl_support_method             = "sni-only"
+  }
+
+}
+
+# Configure DNS ---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+resource "aws_route53_zone" "primary" {
+  name = var.my_domain
+}
+
+resource "aws_route53_record" "www" {
+  zone_id = aws_route53_zone.primary.zone_id
+  name    = "www.${var.my_domain}"
+  type    = "A"
+
+  alias {
+    name                   = aws_cloudfront_distribution.www_site.domain_name
+    zone_id                = aws_cloudfront_distribution.www_site.hosted_zone_id
+    evaluate_target_health = false
+  }
+}
+
+resource "aws_route53_record" "redirect" {
+  zone_id = aws_route53_zone.primary.zone_id
+  name    = var.my_domain
+  type    = "A"
+
+  alias {
+    name                   = aws_cloudfront_distribution.redirect_site.domain_name
+    zone_id                = aws_cloudfront_distribution.redirect_site.hosted_zone_id
+    evaluate_target_health = false
+  }
+}
+
+# Outputs ---------------------------------------------------------------------------------------------------------------------------------------------
+
+output "nameservers" {
+  value = aws_route53_zone.primary.name_servers
 }
