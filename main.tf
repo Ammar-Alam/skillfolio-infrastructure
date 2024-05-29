@@ -1,3 +1,4 @@
+# Configuration --------------------------------------------------------------------------------------------------------------------------------
 terraform {
   required_providers {
     aws = {
@@ -24,16 +25,157 @@ variable "aws_region" {
   type        = string
 }
 
+variable "my_domain" {
+  description = "My domain name"
+  type = string
+  
+}
+
+variable "my_certificate" {
+  description = "ARN of my domain certificate"
+  type = string
+  sensitive = true
+  
+}
+
 provider "aws" {
   region     = var.aws_region
   access_key = var.aws_access_key
   secret_key = var.aws_secret_key
 }
 
+# Configure www version of site's bucket and Cloudfront distribution ------------------------------------------------------------------------------------------------------------------------
+
 resource "aws_s3_bucket" "www_site" {
   bucket = "www.myskillfoliotest01"
+
+  tags = {
+    Environment = "Dev"
+  }
 }
+
+resource "aws_s3_bucket_ownership_controls" "www_site" {
+  bucket = aws_s3_bucket.www_site.id
+  rule {
+    object_ownership = "BucketOwnerEnforced"
+  }
+}
+
+resource "aws_s3_bucket_public_access_block" "www_site" {
+  bucket = aws_s3_bucket.www_site.id
+
+  block_public_acls       = false
+  block_public_policy     = false
+  ignore_public_acls      = false
+  restrict_public_buckets = false
+}
+
+resource "aws_s3_bucket_policy" "www_site" {
+  bucket = aws_s3_bucket.www_site.id
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [{
+      Effect    = "Allow",
+      Principal = "*",
+      Action    = "s3:GetObject",
+      Resource  = "${aws_s3_bucket.www_site.arn}/*"
+    }]
+  })
+}
+
+resource "aws_s3_bucket_website_configuration" "www_site" {
+  bucket = aws_s3_bucket.www_site.id
+  index_document {
+    suffix = "index.html"
+  }
+}
+
+
+resource "aws_cloudfront_distribution" "www_site" {
+  origin {
+    domain_name = aws_s3_bucket.www_site.bucket_domain_name
+    origin_id   = aws_s3_bucket.www_site.id
+  }
+
+  enabled             = true
+  is_ipv6_enabled     = true
+  comment             = "Cloudfront Distribution for www_site S3 bucket"
+  default_root_object = "index.html"
+  aliases = [ "www.${var.my_domain}" ]
+
+  default_cache_behavior {
+    allowed_methods        = ["GET", "HEAD"]
+    cached_methods         = ["GET", "HEAD"]
+    target_origin_id       = aws_s3_bucket.www_site.id
+    viewer_protocol_policy = "redirect-to-https"
+
+    forwarded_values {
+      query_string = false
+      cookies {
+        forward = "none"
+      }
+    }
+}
+
+  restrictions {
+    geo_restriction {
+      restriction_type = "none"
+    }
+  }
+
+  viewer_certificate {
+    acm_certificate_arn = var.my_certificate
+    ssl_support_method             = "sni-only"
+  }
+
+}
+
+
+
+# Configure non www version of site's bucket for redirection and Cloudfront distribution ------------------------------------------------------------------------------------------------------------------------
+
 
 resource "aws_s3_bucket" "redirect_site" {
   bucket = "redirectmyskillfoliotest01"
+
+  tags = {
+    Environment = "Dev"
+  }
+}
+
+resource "aws_s3_bucket_ownership_controls" "redirect_site" {
+  bucket = aws_s3_bucket.redirect_site.id
+  rule {
+    object_ownership = "BucketOwnerEnforced"
+  }
+}
+
+resource "aws_s3_bucket_public_access_block" "redirect_site" {
+  bucket = aws_s3_bucket.redirect_site.id
+
+  block_public_acls       = false
+  block_public_policy     = false
+  ignore_public_acls      = false
+  restrict_public_buckets = false
+}
+
+resource "aws_s3_bucket_policy" "redirect_site" {
+  bucket = aws_s3_bucket.redirect_site.id
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [{
+      Effect    = "Allow",
+      Principal = "*",
+      Action    = "s3:GetObject",
+      Resource  = "${aws_s3_bucket.redirect_site.arn}/*"
+    }]
+  })
+}
+
+resource "aws_s3_bucket_website_configuration" "redirect_site" {
+  bucket = aws_s3_bucket.redirect_site.id
+  redirect_all_requests_to {
+    host_name = aws_s3_bucket_website_configuration.www_site.website_endpoint
+    protocol = "http"
+  }
 }
