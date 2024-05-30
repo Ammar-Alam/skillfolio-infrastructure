@@ -126,6 +126,8 @@ resource "aws_cloudfront_distribution" "www_site" {
   viewer_certificate {
     acm_certificate_arn = var.my_certificate
     ssl_support_method             = "sni-only"
+    minimum_protocol_version = "TLSv1.2_2021"
+
   }
 
 }
@@ -189,7 +191,7 @@ resource "aws_cloudfront_distribution" "redirect_site" {
   enabled             = true
   is_ipv6_enabled     = true
   comment             = "Cloudfront Distribution for redirect_site S3 bucket"
-  default_root_object = "index.html"
+  #default_root_object = "index.html"
   aliases = [ var.my_domain ]
 
   default_cache_behavior {
@@ -215,6 +217,8 @@ resource "aws_cloudfront_distribution" "redirect_site" {
   viewer_certificate {
     acm_certificate_arn = var.my_certificate
     ssl_support_method             = "sni-only"
+    minimum_protocol_version = "TLSv1.2_2021"
+
   }
 
 }
