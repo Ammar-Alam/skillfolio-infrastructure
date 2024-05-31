@@ -1,6 +1,8 @@
 # Static Website with S3, CloudFront, and Route 53 using Terraform
 
-This repository contains the Terraform configuration for setting up a static website hosted on AWS S3, distributed via CloudFront, and managed using Route 53. This configuration allows for a custom domain and SSL certificate to allow for the site to be distributed with HTTPS.
+This repository contains the Terraform configuration for setting up a static website hosted on AWS S3, distributed via CloudFront, and managed using Route 53. The following configuration allows for a custom domain and SSL certificate to allow for the site to be distributed with HTTPS.
+
+This Terraform script was created to easily create and tear down the infrastructure needed to host my attempt at Forrest Brazeal's [Cloud Resume Challenge](https://cloudresumechallenge.dev/) and will be expanded further to encompass more aspects of the challenge.
 
 ## Project Overview
 
