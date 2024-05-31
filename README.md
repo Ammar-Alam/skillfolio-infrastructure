@@ -55,7 +55,7 @@ The project sets up the following infrastructure:
 
     Confirm the apply step by typing `yes` when prompted. Alternatively, run the apply command with the `--auto-approve` flag to skip confirmation.
 
-4. **Set custom domain nameserver (if needed) **:
+4. **Set custom domain nameserver (if needed)**:
 
     If you purchased your domain from somewhere other than Route 53, you will need to go to your domain registrar and configure a custom DNS nameserver. Use the Route 53 nameservers of the hosted zone created by the Terraform script. 
 
