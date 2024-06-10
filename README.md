@@ -78,6 +78,7 @@ After applying the Terraform configuration, the following outputs will be availa
 ### CloudFront Distributions
 
 - The distributions use the ACM certificate for HTTPS support and custom domain names.
+- OAI is configured so that the S3 buckets are only accessible via CloudFront
 
 ### Route 53
 

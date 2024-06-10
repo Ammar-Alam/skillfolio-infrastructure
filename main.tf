@@ -76,7 +76,9 @@ resource "aws_s3_bucket_policy" "www_site" {
     Version = "2012-10-17",
     Statement = [{
       Effect    = "Allow",
-      Principal = "*",
+      Principal = {
+        AWS = "${aws_cloudfront_origin_access_identity.www_site_oai.iam_arn}"
+      },
       Action    = "s3:GetObject",
       Resource  = "${aws_s3_bucket.www_site.arn}/*"
     }]
@@ -95,6 +97,10 @@ resource "aws_cloudfront_distribution" "www_site" {
   origin {
     domain_name = aws_s3_bucket.www_site.bucket_domain_name
     origin_id   = aws_s3_bucket.www_site.id
+
+    s3_origin_config {
+            origin_access_identity = aws_cloudfront_origin_access_identity.www_site_oai.cloudfront_access_identity_path
+    }
   }
 
   enabled             = true
@@ -132,6 +138,11 @@ resource "aws_cloudfront_distribution" "www_site" {
 
 }
 
+resource "aws_cloudfront_origin_access_identity" "www_site_oai" {
+  comment = "OAI for www_site"
+}
+
+
 
 
 # Configure non www version of site's bucket for redirection and Cloudfront distribution ------------------------------------------------------------------------------------------------------------------------
@@ -167,7 +178,9 @@ resource "aws_s3_bucket_policy" "redirect_site" {
     Version = "2012-10-17",
     Statement = [{
       Effect    = "Allow",
-      Principal = "*",
+      Principal = {
+        AWS = "${aws_cloudfront_origin_access_identity.redirect_site_oai.iam_arn}"
+      },
       Action    = "s3:GetObject",
       Resource  = "${aws_s3_bucket.redirect_site.arn}/*"
     }]
@@ -186,6 +199,10 @@ resource "aws_cloudfront_distribution" "redirect_site" {
   origin {
     domain_name = aws_s3_bucket.redirect_site.bucket_domain_name
     origin_id   = aws_s3_bucket.redirect_site.id
+
+    s3_origin_config {
+            origin_access_identity = aws_cloudfront_origin_access_identity.redirect_site_oai.cloudfront_access_identity_path
+    }
   }
 
   enabled             = true
@@ -221,6 +238,10 @@ resource "aws_cloudfront_distribution" "redirect_site" {
 
   }
 
+}
+
+resource "aws_cloudfront_origin_access_identity" "redirect_site_oai" {
+  comment = "OAI for redirect_site"
 }
 
 # Configure DNS ---------------------------------------------------------------------------------------------------------------------------------------------------------------------
